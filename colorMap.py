@@ -1,16 +1,26 @@
 #!/usr/bin/python
 
+import argparse
 from colour import Color
 import csv
-import xml.etree.ElementTree as ET
-import sys
 import re
+import xml.etree.ElementTree as ET
+
+parser = argparse.ArgumentParser()
+parser.add_argument('input_file', metavar='N', type=str, nargs=1, help='an input filename')
+parser.add_argument('--increment', help="color range assigned incrementally for full range in input value set", action="store_true")
+parser.add_argument('--truncate', help="color range assigned incrementally, but only for values in input set", action="store_true")
+parser.add_argument('--outputfile', help="specify an SVG output filename")
+parser.add_argument('--low', help="specify the 'low' color in gradient either as color name (e.g. 'red') or hex value")
+parser.add_argument('--high', help="specify the 'high' color in gradient")
+parser.add_argument('--medium', help="specify the 'medium' color in the gradient")
+args = parser.parse_args()
 
 statesByAbbrev = {"AL": "Alabama", "AK": "Alaska", "AZ": "Arizona", "AR": "Arkansas", "CA": "California", "CO": "Colorado", "CT": "Connecticut", "DE": "Delaware", "DC": "District of Columbia", "FL": "Florida", "GA": "Georgia", "HI": "Hawaii", "ID": "Idaho", "IL": "Illinois", "IN": "Indiana", "IA": "Iowa", "KS": "Kansas", "KY": "Kentucky", "LA": "Louisiana", "ME": "Maine", "MD": "Maryland", "MA": "Massachusetts", "MI": "Michigan", "MN": "Minnesota", "MS": "Mississippi", "MO": "Missouri", "MT": "Montana", "NE": "Nebraska", "NV": "Nevada", "NH": "New Hampshire", "NJ": "New Jersey", "NM": "New Mexico", "NY": "New York", "NC": "North Carolina", "ND": "North Dakota", "OH": "Ohio", "OK": "Oklahoma", "OR": "Oregon", "PA": "Pennsylvania", "RI": "Rhode Island", "SC": "South Carolina", "SD": "South Dakota", "TN": "Tennessee", "TX": "Texas", "UT": "Utah", "VT": "Vermont", "VA": "Virginia", "WA": "Washington", "WV": "West Virginia", "WI": "Wisconsin", "WY": "Wyoming"}
 
 provincesByAbbrev = {"ON": "Ontario", "QC": "Quebec", "NS": "Nova Scotia", "NB": "New Brunswick", "MB":"Manitoba", "BC":"British Columbia", "PE":"Prince Edward Island", "SK":"Saskatchewan", "AB":"Alberta", "NL":"Newfoundland and Labrador", "NT":"Northwest Territories", "YT":"Yukon", "NU":"Nunavut"}
 
-def getColors(numberNeeded, userColors):
+def getColors(numberNeeded, args):
 	"""
 	takes the number needed and returns a list of hex color values
 	"""
@@ -19,14 +29,15 @@ def getColors(numberNeeded, userColors):
 	else:
 		numberNeeded += 1
 
-	if userColors:
-		firstColor = Color(userColors[0])
-		lastColor = Color(userColors[-1])
-		if len(userColors) == 3:
-			middleColor = Color(userColors[1])
+	# if the user has specified both 'low' and 'high' values, use those
+	# if they have specified one or the other, but not both, we will use the defaults
+	if args.low and args.high:
+		firstColor = Color(args.low)
+		lastColor  = Color(args.high)
+		if args.medium:
+			middleColor = Color(args.medium)
 		else:
-			middleColor = False
-
+			middleColor = None
 	else:
 		firstColor  = Color("#F4EB37")
 		middleColor = Color("#FFA500")
@@ -59,6 +70,11 @@ def matchValuesToColors(values, colors):
 	return colorMatches
 
 def getStateValuesDict(inputCSV):
+	"""
+	Takes a CSV and returns a dict of states with their values from the CSV
+	e.g. {"CA": 23, "TX": 45}
+	"""
+
 	# create a dictionary of {State: Value}
 	stateValueDict = {}
 
@@ -147,45 +163,11 @@ def colorStates(colorDict, stateValueDict, outFile, needUSMap, needCanMap):
 	f.write(output)
 	f.close()
 
-def getInputFile(argv):
-	"""
-	if a CSV has been specified, use that
-	otherwise, prompt the user to enter a filename
-	"""
-	inputCSV = False
-	for arg in argv:
-		if re.search('\.csv$', arg):
-			inputCSV = arg
-	if not inputCSV:
-		inputCSV = raw_input("enter a CSV to open: ")
-	return inputCSV
-
-def getOutputFile(argv):
-	"""
-	if an SVG has been specified, we'll write to that
-	otherwise, we'll use a default
-	"""
-	outputCSV = "newMap.svg"
-	for arg in argv:
-		if re.search('\.svg$', arg):
-			outputCSV = arg
-	return outputCSV
-
-def getInputColors(argv):
-	colors = []
-	namedColors = ['springgreen', 'salmon', 'midnightblue', 'mediumseagreen', 'thistle', 'lightslategray', 'khaki', 'lightgray', 'coral', 'darkgray', 'silver', 'steelblue', 'lavenderblush', 'lightpink', 'white', 'darkolivegreen', 'lightcyan', 'lightblue', 'turquoise', 'lightgreen', 'lightgoldenrod', 'darkmagenta', 'blue', 'darkslategray', 'wheat', 'palegreen', 'ivory', 'cornsilk', 'darkslateblue', 'blueviolet', 'purple', 'powderblue', 'pink', 'darkorange', 'orange', 'papayawhip', 'peru', 'seashell', 'aliceblue', 'lemonchiffon', 'goldenrod', 'skyblue', 'maroon', 'navy', 'violet', 'burlywood', 'crimson', 'beige', 'lightsteelblue', 'tomato', 'chartreuse', 'royalblue', 'gray', 'darkgoldenrod', 'darkorchid', 'deeppink', 'honeydew', 'orangered', 'forestgreen', 'darkturquoise', 'firebrick', 'greenyellow', 'indianred', 'olivedrab', 'darkblue', 'peachpuff', 'lime', 'mintcream', 'cyan', 'limegreen', 'hotpink', 'mediumslateblue', 'moccasin', 'darkkhaki', 'deepskyblue', 'magenta', 'yellowgreen', 'lawngreen', 'slateblue', 'mediumspringgreen', 'snow', 'red', 'orchid', 'indigo', 'mistyrose', 'chocolate', 'navajowhite', 'cornflowerblue', 'lightgoldenrodyellow', 'gainsboro', 'mediumblue', 'mediumorchid', 'linen', 'aquamarine', 'palevioletred', 'mediumvioletred', 'lightyellow', 'violetred', 'darksalmon', 'olive', 'lavender', 'slategray', 'ghostwhite', 'seagreen', 'brown', 'antiquewhite', 'darkcyan', 'darkseagreen', 'lightsalmon', 'mediumaquamarine', 'lightseagreen', 'gold', 'darkred', 'bisque', 'darkgreen', 'azure', 'dimgray', 'black', 'dodgerblue', 'oldlace', 'lightskyblue', 'mediumpurple', 'sandybrown', 'tan', 'yellow', 'floralwhite', 'lightslateblue', 'cadetblue', 'plum', 'blanchedalmond', 'sienna', 'palegoldenrod', 'darkviolet', 'green', 'whitesmoke', 'mediumturquoise', 'saddlebrown', 'lightcoral', 'rosybrown', 'paleturquoise']
-
-	for arg in sys.argv:
-		if re.search("^\#[0-9a-f].....$", arg):
-			colors.append(arg)
-		if arg.lower() in namedColors:
-			colors.append(arg)
-	if len(colors) > 1:
-		return colors[0:3]
-	else:
-		return False
-
 def isAmerica(potentialStates):
+	"""
+	Returns True if the state list contains any US states
+	Otherwise returns False
+	"""
 	USstates = ['WA', 'WI', 'WV', 'FL', 'WY', 'NH', 'NJ', 'NM', 'NC', 'ND', 'NE', 'NY', 'RI', 'NV', 'CO', 'CA', 'GA', 'CT', 'OK', 'OH', 'KS', 'SC', 'KY', 'OR', 'SD', 'DE', 'DC', 'HI', 'TX', 'LA', 'TN', 'PA', 'VA', 'AK', 'AL', 'AR', 'VT', 'IL', 'IN', 'IA', 'AZ', 'ID', 'ME', 'MD', 'MA', 'UT', 'MO', 'MN', 'MI', 'MT', 'MS']
 	for place in potentialStates:
 		if place in USstates:
@@ -193,16 +175,17 @@ def isAmerica(potentialStates):
 	return False
 
 def isCanada(potentialProvinces):
+	"""
+	Returns True if the state list contains any canadian provinces or territories
+	Otherwise returns False
+	"""
 	canadianProvinces = ["ON", "QC", "NS", "NB", "MB", "BC", "PE", "SK", "AB", "NL", "NT", "YT", "NU"]
 	for place in potentialProvinces:
 		if place in canadianProvinces:
 			return True
 	return False
 
-# get the CSV to open
-inputCSV = getInputFile(sys.argv)
-
-stateValueDict = getStateValuesDict(inputCSV)
+stateValueDict = getStateValuesDict(args.input_file[0])
 
 allStates = stateValueDict.keys()
 allValues = stateValueDict.values()
@@ -220,24 +203,24 @@ uniqValues.sort()
 # then we'll get as many color values as there are ints between min and max
 # otherwise, we'll only get as many color values as there 
 #    are UNIQUE values in the CSV
-if "-increment" in sys.argv or "-truncate" in sys.argv:
+if args.increment or args.truncate:
 	colorsNeeded = (max(allValues) - min(allValues)) + 1
 else:
 	colorsNeeded = len(uniqValues)
 
-# see if the user has a color palette in mind
-userColors = getInputColors(sys.argv)
-
 # get the color palette
-ourColors = getColors(colorsNeeded, userColors)
+ourColors = getColors(colorsNeeded, args)
 
 # get the color dictionary
-if "-increment" in sys.argv:
+if args.increment:
 	valueRange = range(min(allValues), max(allValues) + 1)
 	colorDict = matchValuesToColors(valueRange, ourColors)
 else:
 	colorDict = matchValuesToColors(uniqValues, ourColors)
 
-outputCSV = getOutputFile(sys.argv)
+if args.outputfile:
+	outputCSV = args.outputfile
+else:
+	outputCSV = "newMap.svg"
 
 colorStates(colorDict, stateValueDict, outputCSV, needUSMap, needCanMap)
