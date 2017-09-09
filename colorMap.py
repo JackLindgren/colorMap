@@ -31,11 +31,21 @@ def getColors(numberNeeded, args):
 
 	# if the user has specified both 'low' and 'high' values, use those
 	# if they have specified one or the other, but not both, we will use the defaults
+	# if invalid values have been given for any of the, default will be used instead
 	if args.low and args.high:
-		firstColor = Color(args.low)
-		lastColor  = Color(args.high)
+		try:
+			firstColor = Color(args.low)
+		except ValueError:
+			firstColor  = Color("#F4EB37")
+		try:
+			lastColor  = Color(args.high)
+		except ValueError:
+			lastColor   = Color("#8B0000")
 		if args.medium:
-			middleColor = Color(args.medium)
+			try:
+				middleColor = Color(args.medium)
+			except ValueError:
+				middleColor = Color("#FFA500")
 		else:
 			middleColor = None
 	else:
