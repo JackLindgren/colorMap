@@ -9,16 +9,22 @@ The second column may contain special characters (e.g. `$50000` or `45%`), which
 # Options
 
 ## Input and output
-Specify your input file - the filename must have a .csv extension. If none is specified, program will prompt for one.
+A single input CSV must be included in the arguments.
 
-Specify your output file - the filename must have a .svg extension. If non is specified, program will output to `newMap.svg`.
+An output file may be optionally set with the `outputfile` argument. If no output file is specified, output will be written to `newMap.svg`. 
 
-e.g. `colorMap input.csv output.svg`
+e.g. `colorMap input.csv --outputfile=output.svg`
 
 ## Colors
-Set your own colors - provide 2 or 3 6-digit hex color values (in quotes and preceded by a `#` e.g. `"#fcd123`) or named colors (e.g. `red`) in your arguments. If fewer than 2 are provided, we will use the default colors. If more than three are provided, only the first three colors will be used. Default colors: yellow (#F4EB37), orange (#FFA500), red (#8B0000)
+Set your own colors - provide 6-digit hex color values (preceded by a `#` e.g. `"#fcd123`) or named colors (e.g. `red`) with the `low`, `high`, and `medium` arguments. 
 
-e.g. `colorMap "#4286f4" "#42f448 "ee42f4"`
+If `low` or `high` is specified, but not both, the argument will be ignored and default will be used instead. Likewise if `medium` is specified without `low` and `high`, it will be ignored.
+
+e.g. `colorMap --low=#4286f4 --medium=#42f448 --high=red`
+
+If invalid values are used, they will be ignored and replaced by the default value for that part of the gradient.
+
+e.g. `colorMap --low=cats --high=red`, the 'low' value will default to #F4EB37.
 
 ## Gradient options
 ### Default 
@@ -32,7 +38,7 @@ Retrieves a 4-color (`a, b, c, d`) gradient and assigns them to the 4 values
 Color match: `1: a, 3: b, 4: c, 7: d`
 
 ### Increment
-`colorMap.py -increment`
+`colorMap.py --increment`
 Gets one color for every value between the minimum and maximum in our set.
 The color difference between each value is proporitional to the value difference. e.g. 1 and 5 will have a greater color difference than 6 and 7.
 
@@ -43,7 +49,7 @@ Retrieves a 7 color gradient (`a-g`) and assigns them proportionally among the 4
 Color match: `1: a, 3: c, 4: d, 7: g`
 
 ### Truncate
-`colorMap.py -truncate`
+`colorMap.py --truncate`
 Gets one color for every value between the minimum and maximum in the value set, but assigns the values incrementally to each _unique_ value. Every value has an equal separation (same as with default), but the color range will be shorter.
 
 Unique values: `1, 3, 4, 7`
