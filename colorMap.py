@@ -2,23 +2,7 @@
 
 from colour import Color
 import csv
-import re
 import xml.etree.ElementTree as ET
-
-statesByAbbrev = {"AL": "Alabama", "AK": "Alaska", "AZ": "Arizona", "AR": "Arkansas", "CA": "California",
-                  "CO": "Colorado", "CT": "Connecticut", "DE": "Delaware", "DC": "District of Columbia",
-                  "FL": "Florida", "GA": "Georgia", "HI": "Hawaii", "ID": "Idaho", "IL": "Illinois", "IN": "Indiana",
-                  "IA": "Iowa", "KS": "Kansas", "KY": "Kentucky", "LA": "Louisiana", "ME": "Maine", "MD": "Maryland",
-                  "MA": "Massachusetts", "MI": "Michigan", "MN": "Minnesota", "MS": "Mississippi", "MO": "Missouri",
-                  "MT": "Montana", "NE": "Nebraska", "NV": "Nevada", "NH": "New Hampshire", "NJ": "New Jersey",
-                  "NM": "New Mexico", "NY": "New York", "NC": "North Carolina", "ND": "North Dakota", "OH": "Ohio",
-                  "OK": "Oklahoma", "OR": "Oregon", "PA": "Pennsylvania", "RI": "Rhode Island", "SC": "South Carolina",
-                  "SD": "South Dakota", "TN": "Tennessee", "TX": "Texas", "UT": "Utah", "VT": "Vermont",
-                  "VA": "Virginia", "WA": "Washington", "WV": "West Virginia", "WI": "Wisconsin", "WY": "Wyoming"}
-
-provincesByAbbrev = {"ON": "Ontario", "QC": "Quebec", "NS": "Nova Scotia", "NB": "New Brunswick", "MB": "Manitoba",
-                     "BC": "British Columbia", "PE": "Prince Edward Island", "SK": "Saskatchewan", "AB": "Alberta",
-                     "NL": "Newfoundland and Labrador", "NT": "Northwest Territories", "YT": "Yukon", "NU": "Nunavut"}
 
 
 class ColorMap(object):
@@ -26,7 +10,7 @@ class ColorMap(object):
         self.colors_needed = 0
         self.colors = []
 
-        self.output_filename = output or 'newMap.svg'
+        self.output_filename = output or "newMap.svg"
 
         self.increment = increment
         self.truncate = truncate
@@ -58,10 +42,11 @@ class ColorMap(object):
     def _get_state_values_dict(self):
         """
         Takes a CSV and returns a dict of states with their values from the CSV
-        e.g. {"CA": 23, "TX": 45}
+        e.g., {"CA": 23, "TX": 45}
         """
         # create a dictionary of {State: Value}
         state_value_dict = {}
+
         # all {Name: Abbreviation} pairs for US and Canada in one dict
         states_by_name = {"Alabama": "AL", "Alaska": "AK", "Arizona": "AZ", "Arkansas": "AR", "California": "CA",
                           "Colorado": "CO", "Connecticut": "CT", "Delaware": "DE", "District of Columbia": "DC",
@@ -74,26 +59,25 @@ class ColorMap(object):
                           "Pennsylvania": "PA", "Rhode Island": "RI", "South Carolina": "SC", "South Dakota": "SD",
                           "Tennessee": "TN", "Texas": "TX", "Utah": "UT", "Vermont": "VT", "Virginia": "VA",
                           "Washington": "WA", "West Virginia": "WV", "Wisconsin": "WI", "Wyoming": "WY",
-                          "Ontario": "ON",
-                          "Quebec": "QC", "Nova Scotia": "NS", "New Brunswick": "NB", "Manitoba": "MB",
+                          "Ontario": "ON", "Quebec": "QC", "Nova Scotia": "NS", "New Brunswick": "NB", "Manitoba": "MB",
                           "British Columbia": "BC", "Prince Edward Island": "PE", "Saskatchewan": "SK", "Alberta": "AB",
                           "Newfoundland and Labrador": "NL", "Northwest Territories": "NT", "Yukon": "YT",
                           "Nunavut": "NU"}
 
         with open(self.csv) as input_csv:
-            for line in input_csv:
-                # clear whitespace
-                line = re.sub(' ', '', line)
-                # clear special characters
-                line = re.sub('[^0-9a-zA-Z.,]', '', line)
-                # split on the comma
-                line = line.split(',')
-                # only proceed if it's a state or province name or abbreviation
-                if line[0] in states_by_name.keys() or line[0] in states_by_name.values():
-                    if len(line[0]) > 2:
-                        state_value_dict[states_by_name[line[0]]] = float(line[1])
-                    else:
-                        state_value_dict[line[0]] = float(line[1])
+            reader = csv.DictReader(input_csv)
+            for row in reader:
+                if row["region"] in states_by_name:
+                    # file uses the full name, adjust to the abbreviation
+                    abbrev = states_by_name[row["region"]]
+                elif row["region"] in states_by_name.values():
+                    # file already using the abbreviation
+                    abbrev = row["territory"]
+                else:
+                    # drop any regions that don't match a US state or Canadian province/territory
+                    continue
+                state_value_dict[abbrev] = row["value"]
+
         return state_value_dict
 
     def _is_usa(self):
@@ -101,9 +85,10 @@ class ColorMap(object):
         Returns True if the state list contains any US states
         Otherwise returns False
         """
-        us_states = ['WA', 'WI', 'WV', 'FL', 'WY', 'NH', 'NJ', 'NM', 'NC', 'ND', 'NE', 'NY', 'RI', 'NV', 'CO', 'CA', 'GA',
-                    'CT', 'OK', 'OH', 'KS', 'SC', 'KY', 'OR', 'SD', 'DE', 'DC', 'HI', 'TX', 'LA', 'TN', 'PA', 'VA', 'AK',
-                    'AL', 'AR', 'VT', 'IL', 'IN', 'IA', 'AZ', 'ID', 'ME', 'MD', 'MA', 'UT', 'MO', 'MN', 'MI', 'MT', 'MS']
+        us_states = ["WA", "WI", "WV", "FL", "WY", "NH", "NJ", "NM", "NC", "ND", "NE", "NY", "RI", "NV", "CO", "CA",
+                     "GA", "CT", "OK", "OH", "KS", "SC", "KY", "OR", "SD", "DE", "DC", "HI", "TX", "LA", "TN", "PA",
+                     "VA", "AK", "AL", "AR", "VT", "IL", "IN", "IA", "AZ", "ID", "ME", "MD", "MA", "UT", "MO", "MN",
+                     "MI", "MT", "MS"]
         for place in self.states:
             if place in us_states:
                 return True
@@ -121,15 +106,12 @@ class ColorMap(object):
         return False
 
     def _get_colors_needed(self):
-        unique_values = list(set(self.values))
-        unique_values.sort()
         if self.increment or self.truncate:
             self.colors_needed = (int(max(self.values)) - int(min(self.values))) + 1
         else:
-            self.colors_needed = len(unique_values)
+            self.colors_needed = len(list(set(self.values)))
 
     def _get_colors(self):
-
         # default values
         first_color = Color("#F4EB37")
         middle_color = Color("#FFA500")
@@ -140,7 +122,7 @@ class ColorMap(object):
         else:
             self.colors_needed += 1
 
-        # if the user has specified both 'low' and 'high' values, use those
+        # if the user has specified both "low" and "high" values, use those
         # if they have specified one or the other, but not both, we will use the defaults
         # if invalid values have been given for any of the, default will be used instead
         if self.low and self.high:
@@ -194,11 +176,11 @@ class ColorMap(object):
         # check to see if it's US, Canada, or both
         # loop through the states in the map and assign corresponding values from the dictionaries
         if self.is_us_map and not self.is_canada_map:
-            tree = ET.parse('USMap.svg')
+            tree = ET.parse("USMap.svg")
             root = tree.getroot()
             for child in root:
                 try:
-                    if child.attrib['id'] == "outlines":
+                    if child.attrib["id"] == "outlines":
                         for state in child:
                             try:
                                 # find the state's value
@@ -212,33 +194,35 @@ class ColorMap(object):
                 except KeyError:
                     continue
         elif self.is_canada_map and not self.is_us_map:
-            tree = ET.parse('CanadaMap.svg')
+            tree = ET.parse("CanadaMap.svg")
             root = tree.getroot()
             for child in root:
-                if child.attrib['id'] == 'Canada':
+                if child.attrib["id"] == "Canada":
                     for province in child:
                         try:
-                            prov_value = self.values_dict[province.attrib['id']]
+                            prov_value = self.values_dict[province.attrib["id"]]
                             prov_color = self.color_matches[prov_value]
                             province.attrib["fill"] = prov_color
                         except KeyError:
                             continue
         elif self.is_us_map and self.is_canada_map:
-            tree = ET.parse('USCanadaMap.svg')
+            tree = ET.parse("USCanadaMap.svg")
             root = tree.getroot()
             for child in root:
-                if child.attrib['id'] == "US-CAN":
+                if child.attrib["id"] == "US-CAN":
                     for country in child:
                         for state in country:
                             try:
-                                state_value = self.values_dict[state.attrib['id']]
+                                state_value = self.values_dict[state.attrib["id"]]
                                 state_color = self.color_matches[state_value]
                                 state.attrib["fill"] = state_color
                             except KeyError:
                                 continue
+        else:
+            return
 
         # write the new XML to the output file
-        output = ET.tostring(root).decode('utf-8')
-        f = open(self.output_filename, 'w')
+        output = ET.tostring(root).decode("utf-8")
+        f = open(self.output_filename, "w")
         f.write(output)
         f.close()
